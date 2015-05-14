@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.ocr.observador" >
+    package="com.ocr.observador">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -16,19 +17,19 @@
    to match your app's package name + ".permission.C2D_MESSAGE".
  -->
     <permission
-        android:protectionLevel="signature"
-        android:name="com.ocr.observador.permission.C2D_MESSAGE" />
-    <uses-permission android:name="com.fourtails.usuariolecturista.permission.C2D_MESSAGE" />
+        android:name="com.ocr.observador.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.ocr.observador.permission.C2D_MESSAGE" />
 
     <application
         android:name=".FirstApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
-            android:label="@string/app_name" >
+            android:name=".TitleActivity"
+            android:label="@string/title_activity_test">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -38,7 +39,7 @@
         <activity
             android:name="com.parse.ui.ParseLoginActivity"
             android:label="@string/app_name"
-            android:launchMode="singleTop" >
+            android:launchMode="singleTop">
 
             <!-- For more options, see https://www.parse.com/docs/android_guide#ui-login -->
             <meta-data
@@ -47,6 +48,10 @@
             <meta-data
                 android:name="com.parse.ui.ParseLoginActivity.PARSE_LOGIN_EMAIL_AS_USERNAME"
                 android:value="true" />
+            <!-- We reference a drawable resource here, so we must use android:resource -->
+            <meta-data
+                android:name="com.parse.ui.ParseLoginActivity.APP_LOGO"
+                android:resource="@mipmap/logo" />
         </activity>
         <activity
             android:name=".DispatchActivity"
@@ -54,9 +59,9 @@
             android:launchMode="singleTop"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".TestActivity"
-            android:label="@string/title_activity_test" >
-        </activity>
+            android:name=".MainActivity"
+            android:label="@string/app_name" />
+
         <service android:name="com.parse.PushService" />
 
         <receiver android:name="com.parse.ParseBroadcastReceiver">
@@ -84,7 +89,7 @@
                 <!--
                   IMPORTANT: Change "com.parse.starter" to match your app's package name.
                 -->
-                <category android:name="com.fourtails.usuariolecturista" />
+                <category android:name="com.ocr.observador" />
             </intent-filter>
         </receiver>
     </application>

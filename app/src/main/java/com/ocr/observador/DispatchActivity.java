@@ -9,6 +9,6 @@ public class DispatchActivity extends ParseLoginDispatchActivity {
 
     @Override
     protected Class<?> getTargetClass() {
-        return TestActivity.class;
+        return MainActivity.class;
     }
 }
