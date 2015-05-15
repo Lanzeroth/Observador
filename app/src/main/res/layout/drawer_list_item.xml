@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/navDrawerContainer"
+    android:layout_width="wrap_content"
+    android:layout_height="56dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <ImageView
+        android:id="@+id/imageButtonDrawerIcon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="36dp"
+        android:background="@null"
+        android:src="@mipmap/ic_list_grey600_24dp" />
+
+    <com.devspark.robototextview.widget.RobotoTextView
+        android:id="@+id/textViewDrawer"
+        style="@style/TextViewDrawerMedium"
+        android:text="Home" />
+
+    <!--We might want to add counters to the menu in the future, we leave this commented-->
+
+    <com.devspark.robototextview.widget.RobotoTextView
+        android:id="@+id/counter"
+        app:typeface="roboto_bold"
+        android:textSize="20sp"
+        android:layout_alignParentRight="true"
+        android:textColor="@color/indigo_50"
+        android:text="4"
+        android:background="@mipmap/ic_brightness_1_grey600_24dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:autoText="false"
+        android:layout_marginLeft="36dp"
+        android:gravity="center" />
+
+</LinearLayout>
