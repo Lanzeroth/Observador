@@ -8,6 +8,7 @@ import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -19,7 +20,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.melnykov.fab.FloatingActionButton;
 import com.ocr.observador.MainActivity;
 import com.ocr.observador.R;
 import com.ocr.observador.events.DrawMarkersEvent;
@@ -45,8 +45,8 @@ public class MapFragment extends Fragment {
 
     TextView textViewCasilla;
     EditText editTextCasillaInfo;
-    FloatingActionButton fabCancel;
-    FloatingActionButton fabAccept;
+    Button buttonCancel;
+    Button buttonAccept;
 
     List<ModelMarker> markerList;
 
@@ -179,19 +179,19 @@ public class MapFragment extends Fragment {
 
         textViewCasilla = (TextView) view.findViewById(R.id.textViewCasillaId);
         editTextCasillaInfo = (EditText) view.findViewById(R.id.editTextCasillaInfo);
-        fabAccept = (FloatingActionButton) view.findViewById(R.id.fabAccept);
-        fabCancel = (FloatingActionButton) view.findViewById(R.id.fabCancel);
+        buttonAccept = (Button) view.findViewById(R.id.buttonAccept);
+        buttonCancel = (Button) view.findViewById(R.id.buttonCancel);
 
         textViewCasilla.setText(marker.getTitle());
 
-        fabAccept.setOnClickListener(new View.OnClickListener() {
+        buttonAccept.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 markerDialog.dismiss();
             }
         });
 
-        fabCancel.setOnClickListener(new View.OnClickListener() {
+        buttonCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 markerDialog.dismiss();
