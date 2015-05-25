@@ -1,24 +1,35 @@
 package com.ocr.observador.fragments;
 
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
+import android.widget.EditText;
+import android.widget.TextView;
 
+import com.activeandroid.query.Select;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.melnykov.fab.FloatingActionButton;
+import com.ocr.observador.MainActivity;
 import com.ocr.observador.R;
+import com.ocr.observador.events.DrawMarkersEvent;
+import com.ocr.observador.events.GetMarkersEvent;
+import com.ocr.observador.model.ModelMarker;
 import com.ocr.observador.utilities.AndroidBus;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
+
+import java.util.List;
 
 import butterknife.ButterKnife;
 
@@ -29,6 +40,15 @@ public class MapFragment extends Fragment {
     private static View view;
 
     public static Bus mapBus;
+
+    private AlertDialog markerDialog = null;
+
+    TextView textViewCasilla;
+    EditText editTextCasillaInfo;
+    FloatingActionButton fabCancel;
+    FloatingActionButton fabAccept;
+
+    List<ModelMarker> markerList;
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
@@ -70,14 +90,32 @@ public class MapFragment extends Fragment {
 
     @Subscribe
     public void handleLocation(LatLng latLng) {
-        MarkerOptions options = new MarkerOptions()
-                .position(latLng)
-                .title("I am here!");
-        mMap.addMarker(options);
         CameraUpdate cameraUpdateFactory = CameraUpdateFactory.newLatLng(latLng);
         mMap.moveCamera(cameraUpdateFactory);
         mMap.animateCamera(CameraUpdateFactory.zoomTo(17), 2000, null);
     }
+
+    @Subscribe
+    public void drawMarkers(DrawMarkersEvent event) {
+        markerList = getMarkers();
+        MarkerOptions options = new MarkerOptions();
+        for (ModelMarker marker : markerList) {
+            options.position(new LatLng(marker.latitude, marker.longitude));
+            options.title(marker.title);
+            mMap.addMarker(options);
+        }
+    }
+
+
+    /**
+     * DB query
+     *
+     * @return db Markers
+     */
+    public List<ModelMarker> getMarkers() {
+        return new Select().from(ModelMarker.class).execute();
+    }
+
 
     /**
      * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
@@ -115,14 +153,52 @@ public class MapFragment extends Fragment {
      */
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                inflateMarkerDialog(marker);
+                return true;
+            }
+        });
         mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
             @Override
             public void onMapLoaded() {
-                Toast.makeText(getActivity(), "hola", Toast.LENGTH_SHORT).show();
+                MainActivity.bus.post(new GetMarkersEvent(GetMarkersEvent.Type.STARTED, 1));
             }
         });
         //mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+    }
+
+    private void inflateMarkerDialog(Marker marker) {
+        LayoutInflater inflater = getActivity().getLayoutInflater();
+        View view = inflater.inflate(R.layout.marker_dialog, null);
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setView(view);
+        builder.setTitle("Observaciones de casilla");
+        markerDialog = builder.show();
+
+        textViewCasilla = (TextView) view.findViewById(R.id.textViewCasillaId);
+        editTextCasillaInfo = (EditText) view.findViewById(R.id.editTextCasillaInfo);
+        fabAccept = (FloatingActionButton) view.findViewById(R.id.fabAccept);
+        fabCancel = (FloatingActionButton) view.findViewById(R.id.fabCancel);
+
+        textViewCasilla.setText(marker.getTitle());
+
+        fabAccept.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                markerDialog.dismiss();
+            }
+        });
+
+        fabCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                markerDialog.dismiss();
+            }
+        });
+
+
     }
 
 }

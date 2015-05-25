@@ -30,9 +30,13 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 import com.ocr.observador.custom.navigationDrawer.NavDrawerItem;
 import com.ocr.observador.custom.navigationDrawer.NavDrawerListAdapter;
+import com.ocr.observador.events.DrawMarkersEvent;
+import com.ocr.observador.events.GetMarkersEvent;
 import com.ocr.observador.fragments.MapFragment;
+import com.ocr.observador.jobs.GetMarkersJob;
 import com.ocr.observador.utilities.AndroidBus;
 import com.orhanobut.logger.Logger;
+import com.path.android.jobqueue.JobManager;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
 
@@ -55,6 +59,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     public static Bus bus;
 
     public static FragmentManager fragmentManagerGlobal;
+
+    JobManager jobManager;
 
     // Navigation Drawer
     private String[] navMenuTitles;
@@ -84,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         bus = new AndroidBus();
         bus.register(this);
 
+        jobManager = FirstApplication.getInstance().getJobManager();
 
         /**toolBar **/
         setUpToolBar();
@@ -106,7 +113,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
-
 
     }
 
@@ -297,6 +303,21 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         }
     }
 
+
+    /**
+     * get the markers, save them into the db and then query it
+     */
+    @Subscribe
+    public void getMarkersFromBackend(GetMarkersEvent event) {
+        if (event.getResultCode() == 1 && event.getType() == GetMarkersEvent.Type.STARTED) {
+            jobManager.addJobInBackground(new GetMarkersJob());
+        }
+        if (event.getResultCode() == 1 && event.getType() == GetMarkersEvent.Type.COMPLETED) {
+            MapFragment.mapBus.post(new DrawMarkersEvent(DrawMarkersEvent.Type.STARTED, 1));
+        }
+    }
+
+
     /**
      * Every fragment opened from the drawer must call this method to set the
      * correct toolbar title
@@ -346,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             super.onBackPressed();
         } else {
             new AlertDialog.Builder(this)
-                    .setMessage("Esta seguro que quiere salir de la aplicación?")
+                    .setMessage("Esta seguro que quiere salir de la aplicacion?")
                     .setCancelable(false)
                     .setPositiveButton("Si", new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {

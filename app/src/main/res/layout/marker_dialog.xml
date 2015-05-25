@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:fab="http://schemas.android.com/apk/res-auto"
+
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="20dp">
+
+    <com.devspark.robototextview.widget.RobotoTextView
+        style="@style/TextViewDrawerMedium"
+        android:text="Casilla No. 1"
+        android:textSize="20sp"
+        android:id="@+id/textViewCasillaId" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textMultiLine"
+        android:ems="10"
+        android:id="@+id/editTextCasillaInfo"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="20dp"
+        android:maxHeight="200dp" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/linearLayout"
+        android:gravity="center">
+
+        <com.melnykov.fab.FloatingActionButton
+            android:id="@+id/fabCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@mipmap/ic_close_white_24dp"
+            fab:fab_colorNormal="@color/red_700"
+            fab:fab_colorPressed="@color/red_200"
+            fab:fab_shadow="true" />
+
+        <com.melnykov.fab.FloatingActionButton
+            android:id="@+id/fabAccept"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@mipmap/ic_check_white_24dp"
+            fab:fab_colorNormal="@color/green_700"
+            fab:fab_colorPressed="@color/green_200"
+            fab:fab_shadow="true"
+            android:layout_marginLeft="80dp" />
+    </LinearLayout>
+
+</LinearLayout>
