@@ -1,50 +1,154 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
 
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:padding="20dp">
 
-    <com.devspark.robototextview.widget.RobotoTextView
-        style="@style/TextViewDrawerMedium"
-        android:text="Casilla No. 1"
-        android:textSize="20sp"
-        android:id="@+id/textViewCasillaId" />
+    <ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content">
 
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textMultiLine"
-        android:ems="10"
-        android:id="@+id/editTextCasillaInfo"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="20dp"
-        android:maxHeight="200dp" />
-
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:id="@+id/linearLayout"
-        android:gravity="center">
-
-        <Button
-            style="@style/RobotoButtonCancel"
-            android:id="@+id/buttonCancel"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Cancelar" />
+            android:orientation="vertical">
 
-        <Button
-            style="@style/RobotoButtonOCR"
-            android:id="@+id/buttonAccept"
-            android:layout_width="wrap_content"
-            android:textSize="14sp"
-            android:layout_height="wrap_content"
-            android:text="Guardar"
-            android:layout_marginLeft="40dp" />
-    </LinearLayout>
 
+            <!--FIRST CHECK LIST-->
+            <Button
+                android:id="@+id/button_1"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/custom_button_cancel"
+                android:text="Observaciones Iniciales" />
+
+            <LinearLayout
+                android:id="@+id/container_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:visibility="visible"
+                android:visibility="gone"
+                android:orientation="vertical">
+
+                <CheckBox
+                    android:id="@+id/checkBox_1_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:text="Estan presentes todos" />
+
+                <CheckBox
+                    android:id="@+id/checkBox_1_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:text="Boletas en orden" />
+
+                <CheckBox
+                    android:id="@+id/checkBox_1_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:text="suficientes sillas" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/button_picture_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/custom_button_ocr"
+                        android:src="@mipmap/ic_camera_alt_white_36dp" />
+
+                    <ImageButton
+                        android:id="@+id/button_video_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/custom_button_ocr"
+                        android:src="@mipmap/ic_videocam_white_36dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!--SECOND CHECK LIST-->
+            <Button
+                android:id="@+id/button_2"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/custom_button_cancel"
+                android:text="Checklist 2"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:id="@+id/container_2"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <CheckBox
+                    android:id="@+id/checkBox_2_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:text="Something" />
+
+                <CheckBox
+                    android:id="@+id/checkBox_2_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:text="Something something" />
+
+                <CheckBox
+                    android:id="@+id/checkBox_2_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:text="something something something" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/button_picture_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/custom_button_ocr"
+                        android:src="@mipmap/ic_camera_alt_white_36dp" />
+
+                    <ImageButton
+                        android:id="@+id/button_video_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/custom_button_ocr"
+                        android:src="@mipmap/ic_videocam_white_36dp" />
+
+                </LinearLayout>
+            </LinearLayout>
+
+
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

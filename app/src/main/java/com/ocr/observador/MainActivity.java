@@ -1,12 +1,19 @@
 package com.ocr.observador;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.IntentSender;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
@@ -21,6 +28,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -32,15 +40,24 @@ import com.ocr.observador.custom.navigationDrawer.NavDrawerItem;
 import com.ocr.observador.custom.navigationDrawer.NavDrawerListAdapter;
 import com.ocr.observador.events.DrawMarkersEvent;
 import com.ocr.observador.events.GetMarkersEvent;
+import com.ocr.observador.events.StartCameraIntentEvent;
 import com.ocr.observador.fragments.ListFragment;
 import com.ocr.observador.fragments.MapFragment;
 import com.ocr.observador.jobs.GetMarkersJob;
+import com.ocr.observador.jobs.UploadImageToGCSJob;
+import com.ocr.observador.jobs.UploadVideoToGCSJob;
 import com.ocr.observador.utilities.AndroidBus;
 import com.orhanobut.logger.Logger;
 import com.path.android.jobqueue.JobManager;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
 import butterknife.ButterKnife;
@@ -62,6 +79,16 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     public static FragmentManager fragmentManagerGlobal;
 
     JobManager jobManager;
+
+    Uri mImageUri;
+
+    private static final String BUCKET_NAME = "observador-media";
+
+    private int mCategoryId;
+
+    private static final int IMAGE_REQUEST = 100;
+    private static final int VIDEO_REQUEST = 200;
+
 
     // Navigation Drawer
     private String[] navMenuTitles;
@@ -357,6 +384,126 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         return super.onOptionsItemSelected(item);
     }
+
+
+    @Subscribe
+    public void startCameraIntent(StartCameraIntentEvent event) {
+        if (event.getResultCode() == 1) {
+            if (event.isImage()) {
+                mCategoryId = event.getCategoryNumber();
+                Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                mImageUri = Uri.fromFile(getTempFile(this, true));
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
+                startActivityForResult(intent, IMAGE_REQUEST);
+            } else {
+                mCategoryId = event.getCategoryNumber();
+                Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+                intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+                startActivityForResult(intent, VIDEO_REQUEST);
+            }
+        }
+    }
+
+    private File getTempFile(Context context, boolean isImage) {
+        //it will return /sdcard/image.tmp
+        final File path = new File(Environment.getExternalStorageDirectory(), context.getPackageName());
+        if (!path.exists()) {
+            path.mkdir();
+        }
+        if (isImage) {
+            return new File(path, "image.tmp");
+        } else {
+            return new File(path, "video.mp4");
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == IMAGE_REQUEST) {
+            final File file = getTempFile(this, true);
+            try {
+                Bitmap captureBmp = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri.fromFile(file));
+                // do whatever you want with the bitmap (Resize, Rename, Add To Gallery, etc)
+                file.delete();
+                uploadImageToGCS(captureBmp);
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else if (requestCode == VIDEO_REQUEST) {
+            try {
+                AssetFileDescriptor videoAsset = getContentResolver().openAssetFileDescriptor(data.getData(), "r");
+                FileInputStream fis = videoAsset.createInputStream();
+                File tmpFile = new File(Environment.getExternalStorageDirectory(), "VideoFile.3gp");
+                FileOutputStream fos = new FileOutputStream(tmpFile);
+
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = fis.read(buf)) > 0) {
+                    fos.write(buf, 0, len);
+                }
+                fis.close();
+                fos.close();
+                uploadVideoToGCS(tmpFile);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private void uploadVideoToGCS(File file) {
+        Toast.makeText(this, "Subiendo Video...", Toast.LENGTH_SHORT).show();
+        try {
+            byte[] video = readFile(file);
+            jobManager.addJobInBackground(new UploadVideoToGCSJob(video, this, BUCKET_NAME, mCategoryId));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Logger.i("Initiate Video upload");
+    }
+
+    /**
+     * we need to transform the video file to byte array again :(
+     *
+     * @param file video file
+     * @return byte array
+     * @throws IOException
+     */
+    public static byte[] readFile(File file) throws IOException {
+        // Open file
+        RandomAccessFile f = new RandomAccessFile(file, "r");
+        try {
+            // Get and check length
+            long longlength = f.length();
+            int length = (int) longlength;
+            if (length != longlength)
+                throw new IOException("File size >= 2 GB");
+            // Read file and return data
+            byte[] data = new byte[length];
+            f.readFully(data);
+            return data;
+        } finally {
+            f.close();
+        }
+    }
+
+    /**
+     * The response is on map fragment
+     *
+     * @param image
+     */
+    public void uploadImageToGCS(Bitmap image) {
+        Toast.makeText(this, "Subiendo Imagen...", Toast.LENGTH_SHORT).show();
+        Logger.i("Initiating Image upload");
+        jobManager.addJobInBackground(new UploadImageToGCSJob(image, this, BUCKET_NAME, mCategoryId));
+    }
+
 
     /**
      * We want to exit the app on many back pressed
