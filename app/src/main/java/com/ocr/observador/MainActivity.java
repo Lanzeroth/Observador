@@ -32,6 +32,7 @@ import com.ocr.observador.custom.navigationDrawer.NavDrawerItem;
 import com.ocr.observador.custom.navigationDrawer.NavDrawerListAdapter;
 import com.ocr.observador.events.DrawMarkersEvent;
 import com.ocr.observador.events.GetMarkersEvent;
+import com.ocr.observador.fragments.ListFragment;
 import com.ocr.observador.fragments.MapFragment;
 import com.ocr.observador.jobs.GetMarkersJob;
 import com.ocr.observador.utilities.AndroidBus;
@@ -271,7 +272,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 fragment = new MapFragment();
                 break;
             case 1:
-                fragment = new MapFragment();
+                fragment = new ListFragment();
                 break;
             default:
                 break;

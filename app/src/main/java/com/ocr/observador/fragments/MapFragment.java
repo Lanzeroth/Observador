@@ -153,11 +153,11 @@ public class MapFragment extends Fragment {
      */
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
-        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
-            public boolean onMarkerClick(Marker marker) {
+            public void onInfoWindowClick(Marker marker) {
                 inflateMarkerDialog(marker);
-                return true;
+
             }
         });
         mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
