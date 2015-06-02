@@ -419,41 +419,44 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == IMAGE_REQUEST) {
-            final File file = getTempFile(this, true);
-            try {
-                Bitmap captureBmp = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri.fromFile(file));
-                // do whatever you want with the bitmap (Resize, Rename, Add To Gallery, etc)
-                file.delete();
-                uploadImageToGCS(captureBmp);
+        if (resultCode == RESULT_OK) {
+            if (requestCode == IMAGE_REQUEST) {
+                final File file = getTempFile(this, true);
+                try {
+                    Bitmap captureBmp = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri.fromFile(file));
+                    // do whatever you want with the bitmap (Resize, Rename, Add To Gallery, etc)
+                    file.delete();
+                    uploadImageToGCS(captureBmp);
 
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else if (requestCode == VIDEO_REQUEST) {
-            try {
-                AssetFileDescriptor videoAsset = getContentResolver().openAssetFileDescriptor(data.getData(), "r");
-                FileInputStream fis = videoAsset.createInputStream();
-                File tmpFile = new File(Environment.getExternalStorageDirectory(), "VideoFile.3gp");
-                FileOutputStream fos = new FileOutputStream(tmpFile);
-
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = fis.read(buf)) > 0) {
-                    fos.write(buf, 0, len);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-                fis.close();
-                fos.close();
-                uploadVideoToGCS(tmpFile);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            } else if (requestCode == VIDEO_REQUEST) {
+                try {
+                    AssetFileDescriptor videoAsset = getContentResolver().openAssetFileDescriptor(data.getData(), "r");
+                    FileInputStream fis = videoAsset.createInputStream();
+                    File tmpFile = new File(Environment.getExternalStorageDirectory(), "VideoFile.3gp");
+                    FileOutputStream fos = new FileOutputStream(tmpFile);
 
+                    byte[] buf = new byte[1024];
+                    int len;
+                    while ((len = fis.read(buf)) > 0) {
+                        fos.write(buf, 0, len);
+                    }
+                    fis.close();
+                    fos.close();
+                    uploadVideoToGCS(tmpFile);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
         }
+
     }
 
     private void uploadVideoToGCS(File file) {
