@@ -79,6 +79,18 @@
 
         <service android:name="com.parse.PushService" />
 
+        <service
+            android:name=".services.MagicalLocationService"
+            android:enabled="true" />
+
+        <receiver
+            android:name=".services.LocationReceiver"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="com.ocr.observador.intent.action.LOCATION" />
+            </intent-filter>
+        </receiver>
+
         <receiver android:name="com.parse.ParseBroadcastReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

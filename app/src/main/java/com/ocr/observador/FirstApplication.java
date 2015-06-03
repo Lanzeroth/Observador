@@ -1,6 +1,7 @@
 package com.ocr.observador;
 
 import android.app.Application;
+import android.content.Context;
 import android.util.Log;
 
 import com.activeandroid.ActiveAndroid;
@@ -21,6 +22,14 @@ public class FirstApplication extends Application {
     private static FirstApplication instance;
     private JobManager jobManager;
 
+    public static final String PREF_IS_LOCATION_SERVICE_RUNNING = "isLocationServiceRunningPreference";
+
+    public static Context getContext() {
+        return context;
+    }
+
+    public static Context context;
+
     public FirstApplication() {
         instance = this;
     }
@@ -30,6 +39,8 @@ public class FirstApplication extends Application {
         super.onCreate();
         // Initialize ORM
         ActiveAndroid.initialize(this);
+
+        context = getApplicationContext();
 
         // Logger
         Logger.init("PL");

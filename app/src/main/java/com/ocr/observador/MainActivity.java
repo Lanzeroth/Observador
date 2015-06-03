@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -13,6 +14,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -46,6 +48,7 @@ import com.ocr.observador.fragments.MapFragment;
 import com.ocr.observador.jobs.GetMarkersJob;
 import com.ocr.observador.jobs.UploadImageToGCSJob;
 import com.ocr.observador.jobs.UploadVideoToGCSJob;
+import com.ocr.observador.services.MagicalLocationService;
 import com.ocr.observador.utilities.AndroidBus;
 import com.orhanobut.logger.Logger;
 import com.path.android.jobqueue.JobManager;
@@ -117,6 +120,17 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         bus = new AndroidBus();
         bus.register(this);
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isLocationServiceRunning = prefs.getBoolean(FirstApplication.PREF_IS_LOCATION_SERVICE_RUNNING, false);
+
+        Logger.d("Check service running " + isLocationServiceRunning);
+
+//        if (!isLocationServiceRunning) {
+        Intent mServiceIntent = new Intent(this, MagicalLocationService.class);
+        startService(mServiceIntent);
+//        }
+
 
         jobManager = FirstApplication.getInstance().getJobManager();
 
