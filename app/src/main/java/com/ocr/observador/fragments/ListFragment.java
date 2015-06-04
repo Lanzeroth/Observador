@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.activeandroid.query.Select;
+import com.ocr.observador.MainActivity;
 import com.ocr.observador.R;
 import com.ocr.observador.custom.recyclerView.CustomAdapter;
 import com.ocr.observador.model.ModelMarker;
@@ -58,6 +59,13 @@ public class ListFragment extends Fragment {
 
     private void initDataset() {
         mDataset = getMarkers();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        MainActivity.bus.post(getResources().getString(R.string.titlesMapFragment));
+
     }
 
     /**

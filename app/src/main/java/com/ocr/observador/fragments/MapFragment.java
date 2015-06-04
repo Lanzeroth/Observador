@@ -109,7 +109,7 @@ public class MapFragment extends Fragment {
         super.onResume();
         setUpMapIfNeeded();
 
-//        MainActivity.bus.post(getResources().getString(R.string.titlesMapFragment));
+        MainActivity.bus.post(getResources().getString(R.string.titlesMapFragment));
     }
 
     @Subscribe
