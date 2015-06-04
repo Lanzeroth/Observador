@@ -16,8 +16,8 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.storage.StorageScopes;
+import com.ocr.observador.MainActivity;
 import com.ocr.observador.events.UploadImageEvent;
-import com.ocr.observador.fragments.MapFragment;
 import com.ocr.observador.utilities.Priority;
 import com.orhanobut.logger.Logger;
 import com.path.android.jobqueue.Job;
@@ -97,7 +97,7 @@ public class UploadImageToGCSJob extends Job {
         if (response.isSuccessStatusCode()) {
             Logger.i(response.getStatusMessage() + "Uploading image");
             responseOk = true;
-            MapFragment.mapBus.post(new UploadImageEvent(UploadImageEvent.Type.COMPLETED, 1, imageName, mCategory));
+            MainActivity.bus.post(new UploadImageEvent(UploadImageEvent.Type.COMPLETED, 1, imageName, mCategory));
         }
 
     }
@@ -160,11 +160,11 @@ public class UploadImageToGCSJob extends Job {
     @Override
     protected void onCancel() {
         Logger.d("Error in  user profile image uploading");
-        MapFragment.mapBus.post(new UploadImageEvent(UploadImageEvent.Type.COMPLETED, 99, null, mCategory));
+        MainActivity.bus.post(new UploadImageEvent(UploadImageEvent.Type.COMPLETED, 99, null, mCategory));
     }
 
     @Override
     protected boolean shouldReRunOnThrowable(Throwable throwable) {
-        return false;
+        return retry;
     }
 }

@@ -14,8 +14,8 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.storage.StorageScopes;
+import com.ocr.observador.MainActivity;
 import com.ocr.observador.events.UploadVideoEvent;
-import com.ocr.observador.fragments.MapFragment;
 import com.ocr.observador.utilities.Priority;
 import com.orhanobut.logger.Logger;
 import com.path.android.jobqueue.Job;
@@ -94,7 +94,7 @@ public class UploadVideoToGCSJob extends Job {
         if (response.isSuccessStatusCode()) {
             Logger.i(response.getStatusMessage() + "Uploading video");
             responseOk = true;
-            MapFragment.mapBus.post(new UploadVideoEvent(UploadVideoEvent.Type.COMPLETED, 1, videoName, mCategory));
+            MainActivity.bus.post(new UploadVideoEvent(UploadVideoEvent.Type.COMPLETED, 1, videoName, mCategory));
         }
 
     }
@@ -143,11 +143,11 @@ public class UploadVideoToGCSJob extends Job {
     @Override
     protected void onCancel() {
         Logger.d("Error in UploadVideoEvent uploading");
-        MapFragment.mapBus.post(new UploadVideoEvent(UploadVideoEvent.Type.COMPLETED, 99, null, mCategory));
+        MainActivity.bus.post(new UploadVideoEvent(UploadVideoEvent.Type.COMPLETED, 99, null, mCategory));
     }
 
     @Override
     protected boolean shouldReRunOnThrowable(Throwable throwable) {
-        return false;
+        return retry;
     }
 }

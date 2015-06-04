@@ -24,12 +24,18 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.transition.TransitionInflater;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.activeandroid.query.Select;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -40,18 +46,25 @@ import com.ocr.observador.custom.navigationDrawer.NavDrawerItem;
 import com.ocr.observador.custom.navigationDrawer.NavDrawerListAdapter;
 import com.ocr.observador.events.DrawMarkersEvent;
 import com.ocr.observador.events.GetMarkersEvent;
+import com.ocr.observador.events.MarkerClickedEvent;
 import com.ocr.observador.events.StartCameraIntentEvent;
+import com.ocr.observador.events.UploadImageEvent;
 import com.ocr.observador.fragments.ListFragment;
 import com.ocr.observador.fragments.MapFragment;
 import com.ocr.observador.jobs.GetMarkersJob;
 import com.ocr.observador.jobs.UploadImageToGCSJob;
 import com.ocr.observador.jobs.UploadVideoToGCSJob;
+import com.ocr.observador.model.ModelMarker;
 import com.ocr.observador.services.MagicalLocationService;
 import com.ocr.observador.utilities.AndroidBus;
 import com.orhanobut.logger.Logger;
 import com.path.android.jobqueue.JobManager;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -60,6 +73,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -108,6 +122,29 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     @InjectView(R.id.toolbar)
     Toolbar toolbar;
+
+
+    private AlertDialog markerDialog = null;
+
+    private List<ModelMarker> mMarkerList;
+
+    CheckBox checkBox1_1;
+    CheckBox checkBox1_2;
+    CheckBox checkBox1_3;
+    CheckBox checkBox2_1;
+    CheckBox checkBox2_2;
+    CheckBox checkBox2_3;
+
+    ImageButton buttonPicture1;
+    ImageButton buttonPicture2;
+    ImageButton buttonVideo1;
+    ImageButton buttonVideo2;
+
+    String mPicture1String = "";
+    String mPicture2String = "";
+
+    String mVideo1String = "";
+    String mVideo2String = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -287,6 +324,15 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     }
 
     /**
+     * DB query
+     *
+     * @return db Markers
+     */
+    public List<ModelMarker> queryMarkers() {
+        return new Select().from(ModelMarker.class).execute();
+    }
+
+    /**
      * Slide menu item click listener
      */
     private class SlideMenuClickListener implements
@@ -397,8 +443,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 //        return super.onOptionsItemSelected(item);
 //    }
 
-
-    @Subscribe
     public void startCameraIntent(StartCameraIntentEvent event) {
         if (event.getResultCode() == 1) {
             if (event.isImage()) {
@@ -519,6 +563,204 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         jobManager.addJobInBackground(new UploadImageToGCSJob(image, this, BUCKET_NAME, mCategoryId));
     }
 
+
+    /**
+     * Inflates the dialog, this is the most important part of the app
+     *
+     * @param event
+     */
+    @Subscribe
+    public void inflateMarkerDialog(MarkerClickedEvent event) {
+        if (event.getResultCode() == 1) {
+            mMarkerList = queryMarkers();
+
+            ModelMarker modelMarker = mMarkerList.get(event.getMarkerId());
+
+            LayoutInflater inflater = this.getLayoutInflater();
+            View view = inflater.inflate(R.layout.marker_dialog, null);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setView(view);
+            builder.setPositiveButton("Guardar", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    markerDialog.dismiss();
+                }
+            });
+            builder.setNegativeButton("Cancelar", null);
+            builder.setTitle("Observaciones de la " + modelMarker.title);
+            markerDialog = builder.show();
+
+            Button button1 = ButterKnife.findById(view, R.id.button_1);
+            Button button2 = ButterKnife.findById(view, R.id.button_2);
+
+            final LinearLayout container1 = ButterKnife.findById(view, R.id.container_1);
+            final LinearLayout container2 = ButterKnife.findById(view, R.id.container_2);
+
+            checkBox1_1 = ButterKnife.findById(view, R.id.checkBox_1_1);
+            checkBox1_2 = ButterKnife.findById(view, R.id.checkBox_1_2);
+            checkBox1_3 = ButterKnife.findById(view, R.id.checkBox_1_3);
+            checkBox2_1 = ButterKnife.findById(view, R.id.checkBox_2_1);
+            checkBox2_2 = ButterKnife.findById(view, R.id.checkBox_2_2);
+            checkBox2_3 = ButterKnife.findById(view, R.id.checkBox_2_3);
+
+            buttonPicture1 = ButterKnife.findById(view, R.id.button_picture_1);
+            buttonPicture2 = ButterKnife.findById(view, R.id.button_picture_2);
+
+            buttonVideo1 = ButterKnife.findById(view, R.id.button_video_1);
+            buttonVideo2 = ButterKnife.findById(view, R.id.button_video_2);
+
+
+            button1.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    visibilityToggle(container1);
+                }
+            });
+            button2.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    visibilityToggle(container2);
+                }
+            });
+
+            buttonPicture1.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    takePicture(1);
+                }
+            });
+
+            buttonVideo1.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    takeVideo(1);
+                }
+            });
+
+            buttonPicture2.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    takePicture(2);
+                }
+            });
+
+            buttonVideo2.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    takeVideo(2);
+                }
+            });
+        }
+    }
+
+    private void visibilityToggle(View v) {
+        if (v.getVisibility() == View.GONE) {
+            v.setVisibility(View.VISIBLE);
+        } else if (v.getVisibility() == View.VISIBLE) {
+            v.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Will try to take a VIDEO with the built in camera, upload it to GCS and then come back to
+     * the response below with the image name to be put into the json
+     *
+     * @param category the "category" / checklist / division that was clicked
+     */
+    private void takeVideo(int category) {
+        startCameraIntent(new StartCameraIntentEvent(StartCameraIntentEvent.Type.STARTED, false, 1, category));
+    }
+
+    /**
+     * Will try to take an IMAGE with the built in camera, upload it to GCS and then come back to
+     * the response below with the image name to be put into the json
+     *
+     * @param category the "category" / checklist / division that was clicked
+     */
+    private void takePicture(int category) {
+        startCameraIntent(new StartCameraIntentEvent(StartCameraIntentEvent.Type.STARTED, true, 1, category));
+    }
+
+    /**
+     * Last step of IMAGE upload
+     *
+     * @param event .
+     */
+    @Subscribe
+    public void uploadImageToGCSResponse(UploadImageEvent event) {
+        if (event.getResultCode() == 1) {
+            Toast.makeText(this, "Imagen subida con exito...", Toast.LENGTH_SHORT).show();
+            switch (event.getCategory()) {
+                case 1:
+                    mPicture1String = event.getImageName();
+                    break;
+                case 2:
+                    mPicture2String = event.getImageName();
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Last step of VIDEO upload
+     *
+     * @param event .
+     */
+    @Subscribe
+    public void uploadVideoToGCSResponse(UploadImageEvent event) {
+        if (event.getResultCode() == 1) {
+            Toast.makeText(this, "Video subido con exito...", Toast.LENGTH_SHORT).show();
+            switch (event.getCategory()) {
+                case 1:
+                    mVideo1String = event.getImageName();
+                    break;
+                case 2:
+                    mVideo2String = event.getImageName();
+                    break;
+            }
+        }
+    }
+
+
+    /**
+     * creates a json with all the info at the moment.
+     */
+    private void createJSON() {
+        JSONObject category1 = new JSONObject();
+        try {
+            category1.put("category", "initial observations");
+            category1.put("checklist_item_1", checkBox1_1.isSelected());
+            category1.put("checklist_item_2", checkBox1_2.isSelected());
+            category1.put("checklist_item_3", checkBox1_3.isSelected());
+            category1.put("picture", mPicture1String);
+            category1.put("video", mVideo1String);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        JSONObject category2 = new JSONObject();
+        try {
+            category2.put("category", "category 2");
+            category2.put("checklist_item_1", checkBox2_1.isSelected());
+            category2.put("checklist_item_2", checkBox2_2.isSelected());
+            category2.put("checklist_item_3", checkBox2_3.isSelected());
+            category2.put("picture", mPicture2String);
+            category2.put("video", mVideo2String);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        JSONArray jsonArray = new JSONArray();
+        jsonArray.put(category1);
+        jsonArray.put(category2);
+
+        JSONObject observations = new JSONObject();
+        try {
+            observations.put("Observations", jsonArray);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+    }
 
     /**
      * We want to exit the app on many back pressed

@@ -22,7 +22,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.ocr.observador.MainActivity;
 import com.ocr.observador.R;
+import com.ocr.observador.events.MarkerClickedEvent;
 import com.ocr.observador.model.ModelMarker;
 import com.orhanobut.logger.Logger;
 
@@ -50,6 +52,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.ViewHolder
             v.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    MainActivity.bus.post(new MarkerClickedEvent(MarkerClickedEvent.Type.STARTED, 1, getPosition()));
                     Logger.d("Element " + getPosition() + " clicked.");
                 }
             });

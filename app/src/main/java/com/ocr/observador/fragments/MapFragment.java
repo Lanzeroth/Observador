@@ -1,19 +1,12 @@
 package com.ocr.observador.fragments;
 
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.activeandroid.query.Select;
 import com.google.android.gms.maps.CameraUpdate;
@@ -27,16 +20,11 @@ import com.ocr.observador.MainActivity;
 import com.ocr.observador.R;
 import com.ocr.observador.events.DrawMarkersEvent;
 import com.ocr.observador.events.GetMarkersEvent;
-import com.ocr.observador.events.StartCameraIntentEvent;
-import com.ocr.observador.events.UploadImageEvent;
+import com.ocr.observador.events.MarkerClickedEvent;
 import com.ocr.observador.model.ModelMarker;
 import com.ocr.observador.utilities.AndroidBus;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.List;
 
@@ -49,28 +37,6 @@ public class MapFragment extends Fragment {
     private static View view;
 
     public static Bus mapBus;
-
-    private AlertDialog markerDialog = null;
-
-
-    CheckBox checkBox1_1;
-    CheckBox checkBox1_2;
-    CheckBox checkBox1_3;
-    CheckBox checkBox2_1;
-    CheckBox checkBox2_2;
-    CheckBox checkBox2_3;
-
-    ImageButton buttonPicture1;
-    ImageButton buttonPicture2;
-    ImageButton buttonVideo1;
-    ImageButton buttonVideo2;
-
-    String mPicture1String = "";
-    String mPicture2String = "";
-
-    String mVideo1String = "";
-    String mVideo2String = "";
-
 
     List<ModelMarker> markerList;
 
@@ -180,8 +146,9 @@ public class MapFragment extends Fragment {
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
-                inflateMarkerDialog(marker);
-
+                // the marker id must come like m0, m1, m2. So we remove the first character to get an integer
+                String markerStringId = marker.getId().substring(1);
+                MainActivity.bus.post(new MarkerClickedEvent(MarkerClickedEvent.Type.STARTED, 1, Integer.parseInt(markerStringId)));
             }
         });
         mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
@@ -193,196 +160,5 @@ public class MapFragment extends Fragment {
         //mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
     }
 
-    /**
-     * Inflates the dialog, this is the most important part of the app
-     *
-     * @param marker
-     */
-    private void inflateMarkerDialog(Marker marker) {
-        LayoutInflater inflater = getActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.marker_dialog, null);
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setView(view);
-        builder.setPositiveButton("Guardar", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                markerDialog.dismiss();
-            }
-        });
-        builder.setNegativeButton("Cancelar", null);
-        builder.setTitle("Observaciones de la " + marker.getTitle());
-        markerDialog = builder.show();
-
-        Button button1 = ButterKnife.findById(view, R.id.button_1);
-        Button button2 = ButterKnife.findById(view, R.id.button_2);
-
-        final LinearLayout container1 = ButterKnife.findById(view, R.id.container_1);
-        final LinearLayout container2 = ButterKnife.findById(view, R.id.container_2);
-
-        checkBox1_1 = ButterKnife.findById(view, R.id.checkBox_1_1);
-        checkBox1_2 = ButterKnife.findById(view, R.id.checkBox_1_2);
-        checkBox1_3 = ButterKnife.findById(view, R.id.checkBox_1_3);
-        checkBox2_1 = ButterKnife.findById(view, R.id.checkBox_2_1);
-        checkBox2_2 = ButterKnife.findById(view, R.id.checkBox_2_2);
-        checkBox2_3 = ButterKnife.findById(view, R.id.checkBox_2_3);
-
-        buttonPicture1 = ButterKnife.findById(view, R.id.button_picture_1);
-        buttonPicture2 = ButterKnife.findById(view, R.id.button_picture_2);
-
-        buttonVideo1 = ButterKnife.findById(view, R.id.button_video_1);
-        buttonVideo2 = ButterKnife.findById(view, R.id.button_video_2);
-
-
-        button1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                visibilityToggle(container1);
-            }
-        });
-        button2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                visibilityToggle(container2);
-            }
-        });
-
-        buttonPicture1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                takePicture(1);
-            }
-        });
-
-        buttonVideo1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                takeVideo(1);
-            }
-        });
-
-        buttonPicture2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                takePicture(2);
-            }
-        });
-
-        buttonVideo2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                takeVideo(2);
-            }
-        });
-
-
-    }
-
-    /**
-     * Will try to take a VIDEO with the built in camera, upload it to GCS and then come back to
-     * the response below with the image name to be put into the json
-     *
-     * @param category the "category" / checklist / division that was clicked
-     */
-    private void takeVideo(int category) {
-        MainActivity.bus.post(new StartCameraIntentEvent(StartCameraIntentEvent.Type.STARTED, false, 1, category));
-    }
-
-    /**
-     * Will try to take an IMAGE with the built in camera, upload it to GCS and then come back to
-     * the response below with the image name to be put into the json
-     *
-     * @param category the "category" / checklist / division that was clicked
-     */
-    private void takePicture(int category) {
-        MainActivity.bus.post(new StartCameraIntentEvent(StartCameraIntentEvent.Type.STARTED, true, 1, category));
-    }
-
-    /**
-     * Last step of IMAGE upload
-     *
-     * @param event .
-     */
-    @Subscribe
-    public void uploadImageToGCSResponse(UploadImageEvent event) {
-        if (event.getResultCode() == 1) {
-            Toast.makeText(getActivity(), "Imagen subida con exito...", Toast.LENGTH_SHORT).show();
-            switch (event.getCategory()) {
-                case 1:
-                    mPicture1String = event.getImageName();
-                    break;
-                case 2:
-                    mPicture2String = event.getImageName();
-                    break;
-            }
-        }
-    }
-
-    /**
-     * Last step of VIDEO upload
-     *
-     * @param event .
-     */
-    @Subscribe
-    public void uploadVideoToGCSResponse(UploadImageEvent event) {
-        if (event.getResultCode() == 1) {
-            Toast.makeText(getActivity(), "Video subido con exito...", Toast.LENGTH_SHORT).show();
-            switch (event.getCategory()) {
-                case 1:
-                    mVideo1String = event.getImageName();
-                    break;
-                case 2:
-                    mVideo2String = event.getImageName();
-                    break;
-            }
-        }
-    }
-
-    private void visibilityToggle(View v) {
-        if (v.getVisibility() == View.GONE) {
-            v.setVisibility(View.VISIBLE);
-        } else if (v.getVisibility() == View.VISIBLE) {
-            v.setVisibility(View.GONE);
-        }
-    }
-
-    /**
-     * creates a json with all the info at the moment.
-     */
-    private void createJSON() {
-        JSONObject category1 = new JSONObject();
-        try {
-            category1.put("category", "initial observations");
-            category1.put("checklist_item_1", checkBox1_1.isSelected());
-            category1.put("checklist_item_2", checkBox1_2.isSelected());
-            category1.put("checklist_item_3", checkBox1_3.isSelected());
-            category1.put("picture", mPicture1String);
-            category1.put("video", mVideo1String);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        JSONObject category2 = new JSONObject();
-        try {
-            category2.put("category", "category 2");
-            category2.put("checklist_item_1", checkBox2_1.isSelected());
-            category2.put("checklist_item_2", checkBox2_2.isSelected());
-            category2.put("checklist_item_3", checkBox2_3.isSelected());
-            category2.put("picture", mPicture2String);
-            category2.put("video", mVideo2String);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        JSONArray jsonArray = new JSONArray();
-        jsonArray.put(category1);
-        jsonArray.put(category2);
-
-        JSONObject observations = new JSONObject();
-        try {
-            observations.put("Observations", jsonArray);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-    }
 
 }

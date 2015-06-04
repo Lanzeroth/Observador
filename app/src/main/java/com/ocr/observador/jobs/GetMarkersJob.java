@@ -74,7 +74,7 @@ public class GetMarkersJob extends Job {
             modelMarker4.save();
             ModelMarker modelMarker5 = new ModelMarker(5, "Casilla 5", "", 28.63470548, -106.07664585);
             modelMarker5.save();
-            ModelMarker modelMarker6 = new ModelMarker(6, "Casilla 5", "", 28.63990332, -106.06883526);
+            ModelMarker modelMarker6 = new ModelMarker(6, "Casilla 6", "", 28.63990332, -106.06883526);
             modelMarker6.save();
 
             ActiveAndroid.setTransactionSuccessful();
