@@ -47,17 +47,22 @@ import com.ocr.observador.custom.navigationDrawer.NavDrawerListAdapter;
 import com.ocr.observador.events.DrawMarkersEvent;
 import com.ocr.observador.events.GetMarkersEvent;
 import com.ocr.observador.events.MarkerClickedEvent;
+import com.ocr.observador.events.RegisterUserEvent;
 import com.ocr.observador.events.StartCameraIntentEvent;
 import com.ocr.observador.events.UploadImageEvent;
 import com.ocr.observador.fragments.ListFragment;
 import com.ocr.observador.fragments.MapFragment;
 import com.ocr.observador.jobs.GetMarkersJob;
+import com.ocr.observador.jobs.RegisterUserJob;
 import com.ocr.observador.jobs.UploadImageToGCSJob;
 import com.ocr.observador.jobs.UploadVideoToGCSJob;
 import com.ocr.observador.model.ModelMarker;
+import com.ocr.observador.model.RegisteredUser;
 import com.ocr.observador.services.MagicalLocationService;
 import com.ocr.observador.utilities.AndroidBus;
 import com.orhanobut.logger.Logger;
+import com.parse.ParseInstallation;
+import com.parse.ParseUser;
 import com.path.android.jobqueue.JobManager;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
@@ -128,6 +133,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private List<ModelMarker> mMarkerList;
 
+    /**
+     * Popup dialog *
+     */
     CheckBox checkBox1_1;
     CheckBox checkBox1_2;
     CheckBox checkBox1_3;
@@ -145,6 +153,17 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     String mVideo1String = "";
     String mVideo2String = "";
+
+    /**
+     * register user
+     */
+    private String accountType;
+    private long age;
+    private String email;
+    private String name;
+    private String installationId;
+
+    public static boolean finishedUserRegistration = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -169,7 +188,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         jobManager = FirstApplication.getInstance().getJobManager();
 
-        /**toolBar **/
+        /** toolBar **/
         setUpToolBar();
 
         setUpDrawer();
@@ -190,6 +209,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
+
+        fillUserInfoThenRegister();
 
     }
 
@@ -255,6 +276,74 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         mDrawerToggle.syncState();
     }
+
+
+    /**
+     * fill user info into the global variables
+     */
+    private void fillUserInfoThenRegister() {
+        ParseUser parseUser = ParseUser.getCurrentUser();
+        installationId = ParseInstallation.getCurrentInstallation().getInstallationId();
+        Logger.d("InstallationId ::" + installationId);
+
+        accountType = "G+";
+        age = 30L;
+        email = parseUser.getEmail();
+        name = parseUser.getUsername();
+        registerUserBackend();
+    }
+
+    /**
+     * BackendCall
+     * Registers the user on the backend
+     */
+    private void registerUserBackend() {
+        jobManager.addJobInBackground(new RegisterUserJob(accountType, age, email, name, installationId));
+    }
+
+    @Subscribe
+    public void registerUserBackendResponse(RegisterUserEvent event) {
+        if (event.getResultCode() == 1) {
+            registerUser();
+        } else if (event.getResultCode() == 99) {
+            Logger.i("BACKEND, Bad-registerUserBackend");
+        }
+    }
+
+    /**
+     * DatabaseSave
+     * checks where is the user registering from and saves is to the database
+     */
+    private void registerUser() {
+        // we need to check if the user is already in the database
+        RegisteredUser previouslyRegisteredUser = checkForExistingUser(email);
+        if (previouslyRegisteredUser == null) {
+            RegisteredUser registeredUser = new RegisteredUser(
+                    accountType,
+                    age,
+                    email,
+                    name,
+                    installationId
+            );
+            registeredUser.save();
+            finishedUserRegistration = true;
+        }
+    }
+
+    /**
+     * DatabaseQuery
+     * We check in our database if the user is already registered
+     *
+     * @param emailAsUsername use the email as username
+     * @return a registered user if exists
+     */
+    private RegisteredUser checkForExistingUser(String emailAsUsername) {
+        return new Select()
+                .from(RegisteredUser.class)
+                .where("Email = ?", emailAsUsername)
+                .executeSingle();
+    }
+
 
     @Override
     public void onConnected(Bundle bundle) {
