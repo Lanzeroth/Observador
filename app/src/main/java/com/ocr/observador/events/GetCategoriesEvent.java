@@ -3,7 +3,7 @@ package com.ocr.observador.events;
 /**
  * Created by Vazh on 25/5/2015.
  */
-public class MarkerClickedEvent extends AbstractEvent {
+public class GetCategoriesEvent extends AbstractEvent {
     public enum Type {
         COMPLETED,
         STARTED
@@ -11,17 +11,16 @@ public class MarkerClickedEvent extends AbstractEvent {
 
     private int _resultCode;
 
-    private String _markerId;
+    private String national_id;
 
-
-    public MarkerClickedEvent(Enum type, int _resultCode, String _markerId) {
+    public GetCategoriesEvent(Enum type, int _resultCode, String national_id) {
         super(type);
         this._resultCode = _resultCode;
-        this._markerId = _markerId;
+        this.national_id = national_id;
     }
 
-    public String getMarkerId() {
-        return _markerId;
+    public String getNationalId() {
+        return national_id;
     }
 
     public int getResultCode() {

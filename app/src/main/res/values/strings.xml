@@ -29,5 +29,6 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="titlesMapFragment">Mapa</string>
+    <string name="titlesData">Observaciones</string>
     <string name="titlesListFragment">Lista de casillas</string>
 </resources>

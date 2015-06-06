@@ -70,4 +70,5 @@ dependencies {
     // google maps
     compile 'com.google.android.gms:play-services-maps:7.3.0'
     compile 'com.google.android.gms:play-services-location:7.3.0'
+    compile project(':backend')
 }

@@ -19,8 +19,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.ocr.observador.MainActivity;
 import com.ocr.observador.R;
 import com.ocr.observador.events.DrawMarkersEvent;
-import com.ocr.observador.events.GetMarkersEvent;
 import com.ocr.observador.events.MarkerClickedEvent;
+import com.ocr.observador.events.StartRegisteringUserEvent;
 import com.ocr.observador.model.ModelMarker;
 import com.ocr.observador.utilities.AndroidBus;
 import com.squareup.otto.Bus;
@@ -82,16 +82,17 @@ public class MapFragment extends Fragment {
     public void handleLocation(LatLng latLng) {
         CameraUpdate cameraUpdateFactory = CameraUpdateFactory.newLatLng(latLng);
         mMap.moveCamera(cameraUpdateFactory);
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(17), 2000, null);
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(12), 2000, null);
     }
 
     @Subscribe
     public void drawMarkers(DrawMarkersEvent event) {
         markerList = getMarkers();
         MarkerOptions options = new MarkerOptions();
-        for (ModelMarker marker : markerList) {
-            options.position(new LatLng(marker.latitude, marker.longitude));
-            options.title(marker.title);
+        for (ModelMarker modelMarker : markerList) {
+            options.position(new LatLng(modelMarker.latitude, modelMarker.longitude));
+            options.title(modelMarker.title);
+            options.snippet(modelMarker.national_id);
             mMap.addMarker(options);
         }
     }
@@ -103,7 +104,9 @@ public class MapFragment extends Fragment {
      * @return db Markers
      */
     public List<ModelMarker> getMarkers() {
-        return new Select().from(ModelMarker.class).execute();
+        return new Select().
+                from(ModelMarker.class).
+                execute();
     }
 
 
@@ -143,21 +146,27 @@ public class MapFragment extends Fragment {
      */
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
+
+        // Click
+
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
                 // the marker id must come like m0, m1, m2. So we remove the first character to get an integer
-                String markerStringId = marker.getId().substring(1);
-                MainActivity.bus.post(new MarkerClickedEvent(MarkerClickedEvent.Type.STARTED, 1, Integer.parseInt(markerStringId)));
+//                String markerStringId = marker.getId().substring(1);
+                String markerStringId = marker.getSnippet();
+                MainActivity.bus.post(new MarkerClickedEvent(MarkerClickedEvent.Type.STARTED, 1, markerStringId));
             }
         });
+
+        // Initiate loadings
+
         mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
             @Override
             public void onMapLoaded() {
-                MainActivity.bus.post(new GetMarkersEvent(GetMarkersEvent.Type.STARTED, 1));
+                MainActivity.bus.post(new StartRegisteringUserEvent(StartRegisteringUserEvent.Type.STARTED, 1));
             }
         });
-        //mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
     }
 
 

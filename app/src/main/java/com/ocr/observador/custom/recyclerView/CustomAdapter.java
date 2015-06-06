@@ -52,7 +52,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.ViewHolder
             v.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    MainActivity.bus.post(new MarkerClickedEvent(MarkerClickedEvent.Type.STARTED, 1, getPosition()));
+                    MainActivity.bus.post(new MarkerClickedEvent(MarkerClickedEvent.Type.STARTED, 1, String.valueOf(getPosition())));
                     Logger.d("Element " + getPosition() + " clicked.");
                 }
             });

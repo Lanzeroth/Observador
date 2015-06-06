@@ -24,13 +24,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.transition.TransitionInflater;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
@@ -45,14 +40,18 @@ import com.google.android.gms.maps.model.LatLng;
 import com.ocr.observador.custom.navigationDrawer.NavDrawerItem;
 import com.ocr.observador.custom.navigationDrawer.NavDrawerListAdapter;
 import com.ocr.observador.events.DrawMarkersEvent;
-import com.ocr.observador.events.GetMarkersEvent;
+import com.ocr.observador.events.GetCasillasSafeKeyEvent;
+import com.ocr.observador.events.GetCategoriesEvent;
 import com.ocr.observador.events.MarkerClickedEvent;
 import com.ocr.observador.events.RegisterUserEvent;
 import com.ocr.observador.events.StartCameraIntentEvent;
+import com.ocr.observador.events.StartRegisteringUserEvent;
 import com.ocr.observador.events.UploadImageEvent;
 import com.ocr.observador.fragments.ListFragment;
 import com.ocr.observador.fragments.MapFragment;
-import com.ocr.observador.jobs.GetMarkersJob;
+import com.ocr.observador.fragments.ObservationsFragment;
+import com.ocr.observador.jobs.GetCasillasSafeKeyJob;
+import com.ocr.observador.jobs.GetCategoriesJob;
 import com.ocr.observador.jobs.RegisterUserJob;
 import com.ocr.observador.jobs.UploadImageToGCSJob;
 import com.ocr.observador.jobs.UploadVideoToGCSJob;
@@ -66,10 +65,6 @@ import com.parse.ParseUser;
 import com.path.android.jobqueue.JobManager;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -92,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
 
-    private final String TAG = "MainActivity";
+    private final String TAG = MainActivity.class.getSimpleName();
 
     public static Bus bus;
 
@@ -134,36 +129,17 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private List<ModelMarker> mMarkerList;
 
     /**
-     * Popup dialog *
-     */
-    CheckBox checkBox1_1;
-    CheckBox checkBox1_2;
-    CheckBox checkBox1_3;
-    CheckBox checkBox2_1;
-    CheckBox checkBox2_2;
-    CheckBox checkBox2_3;
-
-    ImageButton buttonPicture1;
-    ImageButton buttonPicture2;
-    ImageButton buttonVideo1;
-    ImageButton buttonVideo2;
-
-    String mPicture1String = "";
-    String mPicture2String = "";
-
-    String mVideo1String = "";
-    String mVideo2String = "";
-
-    /**
      * register user
      */
     private String accountType;
     private long age;
-    private String email;
+    private String mEmail;
     private String name;
     private String installationId;
 
     public static boolean finishedUserRegistration = false;
+
+    public static String nationalIdSelected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -210,7 +186,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
 
-        fillUserInfoThenRegister();
 
     }
 
@@ -288,7 +263,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         accountType = "G+";
         age = 30L;
-        email = parseUser.getEmail();
+        mEmail = parseUser.getEmail();
         name = parseUser.getUsername();
         registerUserBackend();
     }
@@ -298,13 +273,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
      * Registers the user on the backend
      */
     private void registerUserBackend() {
-        jobManager.addJobInBackground(new RegisterUserJob(accountType, age, email, name, installationId));
+        jobManager.addJobInBackground(new RegisterUserJob(accountType, age, mEmail, name, installationId));
     }
 
     @Subscribe
     public void registerUserBackendResponse(RegisterUserEvent event) {
         if (event.getResultCode() == 1) {
             registerUser();
+            getMarkersFromBackend(new GetCasillasSafeKeyEvent(GetCasillasSafeKeyEvent.Type.STARTED, 1));
         } else if (event.getResultCode() == 99) {
             Logger.i("BACKEND, Bad-registerUserBackend");
         }
@@ -316,17 +292,17 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
      */
     private void registerUser() {
         // we need to check if the user is already in the database
-        RegisteredUser previouslyRegisteredUser = checkForExistingUser(email);
+        RegisteredUser previouslyRegisteredUser = checkForExistingUser(mEmail);
         if (previouslyRegisteredUser == null) {
             RegisteredUser registeredUser = new RegisteredUser(
                     accountType,
                     age,
-                    email,
+                    mEmail,
                     name,
                     installationId
             );
             registeredUser.save();
-            finishedUserRegistration = true;
+
         }
     }
 
@@ -334,7 +310,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
      * DatabaseQuery
      * We check in our database if the user is already registered
      *
-     * @param emailAsUsername use the email as username
+     * @param emailAsUsername use the mEmail as username
      * @return a registered user if exists
      */
     private RegisteredUser checkForExistingUser(String emailAsUsername) {
@@ -417,8 +393,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
      *
      * @return db Markers
      */
-    public List<ModelMarker> queryMarkers() {
-        return new Select().from(ModelMarker.class).execute();
+    public ModelMarker queryMarker(String nationalId) {
+        return new Select().
+                from(ModelMarker.class).
+                where("national_id = ?", nationalId).
+                executeSingle();
     }
 
     /**
@@ -478,16 +457,23 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         }
     }
 
+    @Subscribe
+    public void registerUserToBackend(StartRegisteringUserEvent event) {
+        if (event.getResultCode() == 1) {
+            fillUserInfoThenRegister();
+        }
+    }
 
     /**
      * get the markers, save them into the db and then query it
      */
     @Subscribe
-    public void getMarkersFromBackend(GetMarkersEvent event) {
-        if (event.getResultCode() == 1 && event.getType() == GetMarkersEvent.Type.STARTED) {
-            jobManager.addJobInBackground(new GetMarkersJob());
+    public void getMarkersFromBackend(GetCasillasSafeKeyEvent event) {
+        if (event.getResultCode() == 1 && event.getType() == GetCasillasSafeKeyEvent.Type.STARTED) {
+
+            jobManager.addJobInBackground(new GetCasillasSafeKeyJob(mEmail));
         }
-        if (event.getResultCode() == 1 && event.getType() == GetMarkersEvent.Type.COMPLETED) {
+        if (event.getResultCode() == 1 && event.getType() == GetCasillasSafeKeyEvent.Type.COMPLETED) {
             MapFragment.mapBus.post(new DrawMarkersEvent(DrawMarkersEvent.Type.STARTED, 1));
         }
     }
@@ -532,6 +518,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 //        return super.onOptionsItemSelected(item);
 //    }
 
+    @Subscribe
     public void startCameraIntent(StartCameraIntentEvent event) {
         if (event.getResultCode() == 1) {
             if (event.isImage()) {
@@ -654,122 +641,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
 
     /**
-     * Inflates the dialog, this is the most important part of the app
-     *
-     * @param event
-     */
-    @Subscribe
-    public void inflateMarkerDialog(MarkerClickedEvent event) {
-        if (event.getResultCode() == 1) {
-            mMarkerList = queryMarkers();
-
-            ModelMarker modelMarker = mMarkerList.get(event.getMarkerId());
-
-            LayoutInflater inflater = this.getLayoutInflater();
-            View view = inflater.inflate(R.layout.marker_dialog, null);
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setView(view);
-            builder.setPositiveButton("Guardar", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                    markerDialog.dismiss();
-                }
-            });
-            builder.setNegativeButton("Cancelar", null);
-            builder.setTitle("Observaciones de la " + modelMarker.title);
-            markerDialog = builder.show();
-
-            Button button1 = ButterKnife.findById(view, R.id.button_1);
-            Button button2 = ButterKnife.findById(view, R.id.button_2);
-
-            final LinearLayout container1 = ButterKnife.findById(view, R.id.container_1);
-            final LinearLayout container2 = ButterKnife.findById(view, R.id.container_2);
-
-            checkBox1_1 = ButterKnife.findById(view, R.id.checkBox_1_1);
-            checkBox1_2 = ButterKnife.findById(view, R.id.checkBox_1_2);
-            checkBox1_3 = ButterKnife.findById(view, R.id.checkBox_1_3);
-            checkBox2_1 = ButterKnife.findById(view, R.id.checkBox_2_1);
-            checkBox2_2 = ButterKnife.findById(view, R.id.checkBox_2_2);
-            checkBox2_3 = ButterKnife.findById(view, R.id.checkBox_2_3);
-
-            buttonPicture1 = ButterKnife.findById(view, R.id.button_picture_1);
-            buttonPicture2 = ButterKnife.findById(view, R.id.button_picture_2);
-
-            buttonVideo1 = ButterKnife.findById(view, R.id.button_video_1);
-            buttonVideo2 = ButterKnife.findById(view, R.id.button_video_2);
-
-
-            button1.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    visibilityToggle(container1);
-                }
-            });
-            button2.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    visibilityToggle(container2);
-                }
-            });
-
-            buttonPicture1.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    takePicture(1);
-                }
-            });
-
-            buttonVideo1.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    takeVideo(1);
-                }
-            });
-
-            buttonPicture2.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    takePicture(2);
-                }
-            });
-
-            buttonVideo2.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    takeVideo(2);
-                }
-            });
-        }
-    }
-
-    private void visibilityToggle(View v) {
-        if (v.getVisibility() == View.GONE) {
-            v.setVisibility(View.VISIBLE);
-        } else if (v.getVisibility() == View.VISIBLE) {
-            v.setVisibility(View.GONE);
-        }
-    }
-
-    /**
-     * Will try to take a VIDEO with the built in camera, upload it to GCS and then come back to
-     * the response below with the image name to be put into the json
-     *
-     * @param category the "category" / checklist / division that was clicked
-     */
-    private void takeVideo(int category) {
-        startCameraIntent(new StartCameraIntentEvent(StartCameraIntentEvent.Type.STARTED, false, 1, category));
-    }
-
-    /**
-     * Will try to take an IMAGE with the built in camera, upload it to GCS and then come back to
-     * the response below with the image name to be put into the json
-     *
-     * @param category the "category" / checklist / division that was clicked
-     */
-    private void takePicture(int category) {
-        startCameraIntent(new StartCameraIntentEvent(StartCameraIntentEvent.Type.STARTED, true, 1, category));
-    }
-
-    /**
      * Last step of IMAGE upload
      *
      * @param event .
@@ -780,10 +651,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             Toast.makeText(this, "Imagen subida con exito...", Toast.LENGTH_SHORT).show();
             switch (event.getCategory()) {
                 case 1:
-                    mPicture1String = event.getImageName();
+//                    mPicture1String = event.getImageName();
                     break;
                 case 2:
-                    mPicture2String = event.getImageName();
+//                    mPicture2String = event.getImageName();
                     break;
             }
         }
@@ -800,10 +671,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             Toast.makeText(this, "Video subido con exito...", Toast.LENGTH_SHORT).show();
             switch (event.getCategory()) {
                 case 1:
-                    mVideo1String = event.getImageName();
+//                    mVideo1String = event.getImageName();
                     break;
                 case 2:
-                    mVideo2String = event.getImageName();
+//                    mVideo2String = event.getImageName();
                     break;
             }
         }
@@ -811,45 +682,37 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
 
     /**
-     * creates a json with all the info at the moment.
+     * we gotta get the categories from backend
+     *
+     * @param event
      */
-    private void createJSON() {
-        JSONObject category1 = new JSONObject();
-        try {
-            category1.put("category", "initial observations");
-            category1.put("checklist_item_1", checkBox1_1.isSelected());
-            category1.put("checklist_item_2", checkBox1_2.isSelected());
-            category1.put("checklist_item_3", checkBox1_3.isSelected());
-            category1.put("picture", mPicture1String);
-            category1.put("video", mVideo1String);
-        } catch (JSONException e) {
-            e.printStackTrace();
+    @Subscribe
+    public void reactToMarkerClickedEvent(MarkerClickedEvent event) {
+        if (event.getResultCode() == 1) {
+            ModelMarker markerClicked  = queryMarker(event.getMarkerId());
+            jobManager.addJob(new GetCategoriesJob(markerClicked.url_key, markerClicked.national_id));
+            //call job to get categories
         }
-
-        JSONObject category2 = new JSONObject();
-        try {
-            category2.put("category", "category 2");
-            category2.put("checklist_item_1", checkBox2_1.isSelected());
-            category2.put("checklist_item_2", checkBox2_2.isSelected());
-            category2.put("checklist_item_3", checkBox2_3.isSelected());
-            category2.put("picture", mPicture2String);
-            category2.put("video", mVideo2String);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        JSONArray jsonArray = new JSONArray();
-        jsonArray.put(category1);
-        jsonArray.put(category2);
-
-        JSONObject observations = new JSONObject();
-        try {
-            observations.put("Observations", jsonArray);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
     }
+
+    @Subscribe
+    public void getCategoriesResponse(GetCategoriesEvent event) {
+        if (event.getResultCode() == 1) {
+            nationalIdSelected = event.getNationalId();
+            Fragment fragment = new ObservationsFragment();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                fragment.setEnterTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.explode));
+                fragment.setExitTransition(TransitionInflater.from(this).inflateTransition(android.R.transition.fade));
+            }
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            fragmentManager.beginTransaction()
+                    .addToBackStack(null)
+                    .replace(R.id.container, fragment)
+                    .commit();
+            Log.d(TAG, "fragment added " + fragment.getTag());
+        }
+    }
+
 
     /**
      * We want to exit the app on many back pressed

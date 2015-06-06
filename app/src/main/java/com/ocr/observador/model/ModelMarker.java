@@ -11,13 +11,19 @@ import com.activeandroid.annotation.Table;
 public class ModelMarker extends Model {
 
     @Column
-    public int backendId;
+    public String address;
+
+    @Column
+    public String district;
+
+    @Column
+    public String national_id;
 
     @Column
     public String title;
 
     @Column
-    public String content;
+    public String url_key;
 
     @Column
     public double latitude;
@@ -25,10 +31,12 @@ public class ModelMarker extends Model {
     @Column
     public double longitude;
 
-    public ModelMarker(int backendId, String title, String content, double latitude, double longitude) {
-        this.backendId = backendId;
+    public ModelMarker(String address, String district, String national_id, String title, String url_key, double latitude, double longitude) {
+        this.address = address;
+        this.district = district;
+        this.national_id = national_id;
         this.title = title;
-        this.content = content;
+        this.url_key = url_key;
         this.latitude = latitude;
         this.longitude = longitude;
     }
